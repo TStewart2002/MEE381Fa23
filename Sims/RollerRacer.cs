@@ -3,6 +3,7 @@
 //       Equations of motion are derived in class notes.
 //============================================================================
 using System;
+using Godot;
 
 public class RollerRacer : Simulator
 {
@@ -13,6 +14,9 @@ public class RollerRacer : Simulator
     double c;   // distance of rear contact patch from symmetry axis
     double d;   // caster length
     double h;   // longitudinal distance between center of mass and steer axis
+
+    double v;   //Speed of cart
+    double BMax;    //Braking constant
 
     double rW;  // radius of rear wheel, used for calculating rotation rate
     double rWs; // radius of steered wheel, used for calculating rotation rate
@@ -61,6 +65,7 @@ public class RollerRacer : Simulator
         double psiDot = xx[5];
         double delta = xx[9];
         double deltaDot = xx[10];
+        double kpSlip = 2.0;
 
         // calculate some trig functions here, so you only have to do it once
         double cosPsi = Math.Cos(psi);
@@ -69,19 +74,68 @@ public class RollerRacer : Simulator
         double sinDelta = Math.Sin(delta);
         double cosPsiPlusDelta = Math.Cos(psi + delta);
         double sinPsiPlusDelta = Math.Sin(psi + delta);
+        
 
         // #### You will do some hefty calculations here
+        //Create the matrix and do the guass elimination
+        BMax = 225.0;
+        v = xDot*cosPsi - zDot*sinPsi;
+        RacerScene Scene = new RacerScene();
+        double B = Scene.Brake()*BMax*Math.Sign(v);
+
+        LinAlgEq L = new LinAlgEq(n);
+        
+
+        L.A[0][0] = m;
+        L.A[0][1] = 0;
+        L.A[0][2] = 0;
+        L.A[0][3] = -sinPsi;
+        L.A[0][4] = -sinPsiPlusDelta;
+        L.b[0] = -B*cosPsi;
+
+        L.A[1][0] = 0;
+        L.A[1][1] = m;
+        L.A[1][2] = 0;
+        L.A[1][3] = -cosPsi;
+        L.A[1][4] = -cosPsiPlusDelta;
+        L.b[1] = B*sinPsi;
+
+        L.A[2][0] = 0;
+        L.A[2][1] = 0;
+        L.A[2][2] = Ig;
+        L.A[2][3] = -b;
+        L.A[2][4] = (h*cosDelta) - d;
+        L.b[2] = 0;
+
+        L.A[3][0] = sinPsi;
+        L.A[3][1] = cosPsi;
+        L.A[3][2] = b;
+        L.A[3][3] = 0;
+        L.A[3][4] = 0;
+        L.b[3] = -kpSlip*(xDot*sinPsi + zDot*cosPsi + b*psiDot) + (zDot*psiDot*sinPsi) - (xDot*psiDot*cosPsi);
+
+        L.A[4][0] = sinPsiPlusDelta;
+        L.A[4][1] = cosPsiPlusDelta;
+        L.A[4][2] = -(h*cosDelta) + d;
+        L.A[4][3] = 0;
+        L.A[4][4] = 0;
+        L.b[4] = -kpSlip*(xDot*sinPsiPlusDelta + zDot*cosPsiPlusDelta - h*psiDot*cosDelta + (psiDot + deltaDot)*d) -
+                ((-kDDelta*deltaDot - kPDelta*(delta - deltaDes))*d) - (xDot*(psiDot + deltaDot)*cosPsiPlusDelta) + 
+                (zDot*(psiDot + deltaDot)*sinPsiPlusDelta) - (h*psiDot*deltaDot*sinDelta);
+
+
+        L.SolveGauss();
 
         // #### Right sides are zero for now. You will fix
-        ff[0] = 0.0;
-        ff[1] = 0.0;
-        ff[2] = 0.0;
-        ff[3] = 0.0;
-        ff[4] = 0.0;
-        ff[5] = 0.0;
-        ff[6] = 0.0;
-        ff[7] = 0.0;
-        ff[8] = 0.0;
+        ff[0] = xDot;
+        ff[1] = L.sol[0];    //solve gauss first solution = x double dot
+        ff[2] = zDot;
+        ff[3] = L.sol[1];    //solve gauss second solution = z double dot
+        ff[4] = psiDot;
+        ff[5] = L.sol[2];    //solve gauss third solution = psi double dot
+        ff[6] = -((xDot*cosPsi) + (zDot*sinPsi) + (c*psiDot))/rW;
+        ff[7] = ((-xDot*cosPsi) + (zDot*sinPsi) - (c*psiDot))/rW;
+        ff[8] = ((-xDot*cosPsiPlusDelta) + (zDot*sinPsiPlusDelta) - (h*psiDot*sinDelta))/rWs;
         ff[9] = deltaDot;
         ff[10] = -kDDelta*deltaDot -kPDelta*(delta - deltaDes);
 
@@ -212,7 +266,7 @@ public class RollerRacer : Simulator
         get{
             // ######## You have to write this part ################
 
-            return(-1.21212121);
+            return(Math.Sqrt((x[1]*x[1])+(x[3]*x[3])));
         }
     }
 
@@ -220,8 +274,8 @@ public class RollerRacer : Simulator
     {
         get{
             // ######## You have to write this part ################
-
-            return(-1.21212121);
+            v = Math.Sqrt((x[1]*x[1])+(x[3]*x[3]));
+            return(0.5*m*v*v + 0.5*Ig*x[5]*x[5]);
         }
     }
 
@@ -230,7 +284,7 @@ public class RollerRacer : Simulator
         get{
             // ######## You have to write this part ################
 
-            return(-1.21212121);
+            return x[1]*Math.Sin(x[4]+x[9]) + x[3]*Math.Cos(x[4]+x[9]) - h*x[5]*Math.Cos(x[9]) + (x[5]+x[10])*d;
         }
     }
 
@@ -239,7 +293,7 @@ public class RollerRacer : Simulator
         get{
             // ######## You have to write this part ################
 
-            return(-1.21212121);
+            return x[1]*Math.Sin(x[4]) + x[3]*Math.Cos(x[4]) + b*x[5];
         }
     }
 

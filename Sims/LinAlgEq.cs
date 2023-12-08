@@ -5,7 +5,7 @@ using System;
 
 public class LinAlgEq
 {
-    private int n = 3;       // number of algebraic equations (number of unknowns too)
+    private int n = 5;       // number of algebraic equations (number of unknowns too)
     private double[][] _A;   // coefficient matrix
     private double[] _b;     // right hand side
     private double[][] M;    // augmented matrix
@@ -14,7 +14,7 @@ public class LinAlgEq
     //--------------------------------------------------------------------
     // Constructor for the class.
     //--------------------------------------------------------------------
-    public LinAlgEq(int nn = 3)
+    public LinAlgEq(int nn = 5)
     {
         _b = new double[1];   // these three lines get rid of the warning
         _A = new double[1][];
@@ -76,10 +76,35 @@ public class LinAlgEq
         // ########     ONCE YOU GET IT WORKING WITHOUT PIVOTING, 
         // ########     THEN YOU CAN IMPLEMENT PIVOTING WITH ONE 
         // ########     WELL-PLACED CALL TO THE pivotRow METHOD BELOW.
+      for (i = 0; i < n; i++)
+        {
+            PivotRow(i);
+
+            for(j = i+1; j < n; j++)
+            { 
+                double ratio = M[j][i]/M[i][i];
+
+                for(k = 0; k <= n; k++)
+                {
+                    M[j][k] = M[j][k] - ratio*M[i][k];
+                }
+            }
+        }
         
 
         // perform back substitution
         // ######## YOU MUST WRITE YOUR BACK SUBSTITUTION CODE HERE
+        for (i = n-1; i >= 0; i--)
+        {
+            double SolutionSum = 0;
+
+            for(j = n-1; j >= 0; j--)
+            {
+                SolutionSum += M[i][j]*_x[j];
+            }
+
+            _x[i] = (M[i][n] - SolutionSum) / M[i][i];
+        }
     }
 
     //--------------------------------------------------------------------

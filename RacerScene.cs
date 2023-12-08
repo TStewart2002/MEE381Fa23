@@ -32,6 +32,7 @@ public partial class RacerScene : Node3D
 	double rGyr;         // radius of gyration
 
 	double steerSig;     // steer signal from pilot
+	double brakeSig;	//Brake signal from pilot
 
 	RollerRacer racer;   // simulation of the Roller Racer
 	double time;         // elapsed time
@@ -73,6 +74,9 @@ public partial class RacerScene : Node3D
 		dataDisplay.SetLabel(4,"Slip Rate R");
 		dataDisplay.SetValue(4,"---");
 
+		dataDisplay.SetDigitsAfterDecimal(3,6);
+		dataDisplay.SetDigitsAfterDecimal(4,6);
+
 		// set up the cart model
 		cart = GetNode<Cart>("Cart");
 		wheelRad = 0.5 * 0.75;  cart.WheelRadius = (float)wheelRad;
@@ -101,10 +105,15 @@ public partial class RacerScene : Node3D
 	//------------------------------------------------------------------------
 	public override void _Process(double delta)
 	{
-		
-		cart.SetLoc(0.0f, 0.0f, 0.0f, // need to update this with other states
-			0.0f, 0.0f, 0.0f, 
+		//This updates the location of the cart model in Godot
+		cart.SetLoc((float)racer.xG, (float)racer.zG, (float)racer.Heading, 
+			(float)racer.WheelAngleL, (float)racer.WheelAngleR, (float)racer.WheelAngleF, 
 			(float)racer.SteerAngle);
+
+		dataDisplay.SetValue(1,(float)racer.Speed);
+		dataDisplay.SetValue(2,(float)racer.KineticEnergy);
+		dataDisplay.SetValue(3,(float)racer.SlipRateFront);
+		dataDisplay.SetValue(4,(float)racer.SlipRateRear);
 	}
 
     //------------------------------------------------------------------------
@@ -117,7 +126,7 @@ public partial class RacerScene : Node3D
 		ProcessPilotInput();
 		racer.SteerAngleSignal = (-50.0 * steerSig)*Math.PI/180.0;
 
-		racer.StepRK2(time,delta);  // You are going to use the RK4 integrator
+		racer.Step(time,delta);  // You are going to use the RK4 integrator
 		time += delta;
 
 		camSubject.X = (float)racer.xG;
@@ -143,6 +152,24 @@ public partial class RacerScene : Node3D
 			steerSig = 1.0;
 		}
 
+	}
+
+
+	public double Brake()
+	{
+
+		if(Math.Abs(brakeSig) < 0.01)
+		{
+			brakeSig = 0.0;
+		}
+
+		if(Input.IsActionPressed("ui_down"))
+		{
+			brakeSig = 1.0;
+		}
+
+		return brakeSig;
+		
 	}
 
 }

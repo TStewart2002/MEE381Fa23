@@ -5,7 +5,7 @@ using System;
 
 public class Simulator
 {
-    protected int n;           // number of first order odes
+    protected int n = 5;           // number of first order odes
     protected double[] x;      // array of states
     protected double[] xi;     // array of intermediate states
     protected double[][] f;    // 2d array that holds values of rhs
@@ -80,9 +80,39 @@ public class Simulator
     //--------------------------------------------------------------------
     public void Step(double time, double dTime)
     {
-        //int i;
+        int i;
 
-        // It's your job to write the rest of this.
+        //Calc fA
+        rhsFunc(x, time, f[0]);
+        //Calc xA
+        for (i = 0; i < n; i++)
+        {
+            xi[i] = x[i] + (0.5)*f[0][i]*dTime;
+        }
+
+        //Calc fB
+        rhsFunc(xi, time+(0.5*dTime), f[1]);
+        //Calc xB
+        for(i = 0; i < n; i++)
+        {
+            xi[i] = x[i] + (0.5)*f[1][i]*dTime;
+        }
+
+        //Calc fC
+        rhsFunc(xi, time+(0.5*dTime), f[2]);
+        //Calc xC
+        for(i = 0; i < n; i++)
+        {
+            xi[i] = x[i] + f[2][i]*dTime;
+        }
+
+        //Calc fD
+        rhsFunc(xi, time+dTime, f[3]);
+        //Calc xK+1
+        for(i = 0; i < n; i++)
+        {
+            x[i] = x[i] + (1.0/6.0)*(f[0][i] + (2.0)*f[1][i] + (2.0)*f[2][i] + f[3][i])*dTime;
+        }
     }
 
     //--------------------------------------------------------------------
